@@ -1,0 +1,3 @@
+Dessiner sur un SVG: voir https://doc.qt.io/qtforpython/PySide6/QtSvg/QSvgGenerator.html
+Figure out whether the isometry setByMappingPoint(pIn, pOut) is actually a translation along the [pIn, pOut] axis
+Comprendre pourquoi le rendu de l'image n'est pas aussi fin qu'en C++
