@@ -1,9 +1,10 @@
 import sys, random
 import numpy as np
 
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtCore import QDir, QRect, QSize, Qt
 from PySide6.QtGui import QColor, QImage, QKeyEvent, QMouseEvent, QPainter, QPen, QWheelEvent
-from PySide6.QtCore import Qt
+from PySide6.QtSvg import QSvgGenerator
+from PySide6.QtWidgets import QApplication, QFileDialog, QWidget
 
 from toolkit import qnorm, mod2pi
 from h2geometry import H2Isometry, H2Point, H2Segment
@@ -19,13 +20,14 @@ class Canvas(QWidget):
         self.painter.end()
         
     def init(self, sizeX, sizeY):
+        self.title = 'Graph Rep'
         self.resetView(sizeX, sizeY)
         self.initPaintTools(sizeX, sizeY)
         self.setFocusPolicy(Qt.WheelFocus)
         self.setMouseTracking(True)
         self.setEnabled(True)
         self.resize(self.sizeX, self.sizeY)
-        self.setWindowTitle('Graph Rep')
+        self.setWindowTitle(self.title)
         self.show()
 
         self.pointsClicked = []
@@ -34,6 +36,9 @@ class Canvas(QWidget):
     def initPaintTools(self, sizeX, sizeY):
         self.image = QImage(self.sizeX, self.sizeY, QImage.Format_RGB32)
         self.painter = QPainter()
+        self.initPaintImage(sizeX, sizeY)
+
+    def initPaintImage(self, sizeX, sizeY):
         self.painter.begin(self.image)
         self.painter.setRenderHint(QPainter.Antialiasing, True)
         self.painter.eraseRect(0, 0, sizeX, sizeY)
@@ -105,9 +110,12 @@ class Canvas(QWidget):
         self.xMin = self.xMinSave + (self.mouseXSave - x)/self.scaleX
         self.yMax = self.yMaxSave - (self.mouseYSave - y)/self.scaleY
 
-    def paintEvent(self, event):
+    def paint(self):
         self.redrawback()
         self.playground()
+
+    def paintEvent(self, event):
+        self.paint()
         # if (self.image.width() != self.imageMaxSize()):
         #     print("Warning in Canvas.paintEvent: image doesn't fit canvas (image size = {}, canvas size = {})".format(self.image.width(), self.imageMaxSize()))
         canvasPainter = QPainter()
@@ -116,6 +124,21 @@ class Canvas(QWidget):
         X, Y = self.imageFirstCorner()
         canvasPainter.drawImage(X, Y, self.image)
         canvasPainter.end()
+
+    def saveSvg(self):
+        path = QDir.currentPath()+'/export.svg'
+        print(path)
+        generator = QSvgGenerator()
+        generator.setFileName(path)
+        generator.setSize(QSize(self.sizeX, self.sizeY))
+        generator.setViewBox(QRect(0, 0, self.sizeX, self.sizeY))
+        generator.setTitle(self.title)
+
+        self.painter.end()
+        self.painter.begin(generator)
+        self.paint()
+        self.painter.end()
+        self.initPaintImage(self.sizeX, self.sizeY)
 
     def mouseOverImage(self, event:QMouseEvent):
         x, y = event.x(), event.y()
@@ -218,6 +241,8 @@ class Canvas(QWidget):
         elif key==Qt.Key_Shift :
             self.mouseXSave, self.mouseYSave = self.mouseX, self.mouseY
             self.xMinSave, self.yMaxSave = self.xMin, self.yMax
+        elif key==Qt.Key_S :
+            self.saveSvg()
         self.update()
 
     def keyReleaseEvent(self, event:QKeyEvent):
