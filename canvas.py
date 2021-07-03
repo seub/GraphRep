@@ -271,20 +271,29 @@ class Canvas(QWidget):
             self.pen.setColor(color)
             self.pen.setWidth(width)
             self.painter.setPen(self.pen)
+            #print('c = {:2}, r = {:2}, z1 = {:2}, z2 = {:2}'.format(c, r, z1, z2))
+            #print('x1 = {}, y1 = {}, x2 - x1 = {}, y2 - y1 = {}, qtAngle = {}, qtSpan = {}'.format(x1, y1, x2 - x1, y2 - y1, qtAngle, qtSpan))
             self.painter.drawArc(x1, y1, x2 - x1, y2 - y1, qtAngle, qtSpan)
 
     def straightApprox(self, c, r, z1, z2):
         inside, outside, many, z1New, z2New = self.arcIntersectsCanvasBoundary(c, r, z1, z2)
         straight = False
         if many:
+            #print('many')
             pass
         elif outside:
+            #print('outside')
             pass
         elif self.isAlmostSmallStraightArc(c, r, z1, z2):
+            #print('almost small straight')
             z1New, z2New = z1, z2 # I'm tempted to comment this line but it corresponds to what I had
             straight = True
         elif self.isAlmostInfiniteRadius(r):
+            #print('almost infinite radius')
             straight = True
+        else:
+            #print('normal arc')
+            pass
         return outside, straight, z1New, z2New
 
     def liesOnSmallerArc(self, z, center, endpoint1, endpoint2):
@@ -299,19 +308,23 @@ class Canvas(QWidget):
         angleMin = np.pi/(180*16)
         scale = max(self.scaleX, self.scaleY)
         pxError = 8.0
-        return r*scale*angleMin > pxError
+        return np.isnan(r) or (r*scale*angleMin > pxError)
 
     def isAlmostSmallStraightArc(self, c, r, z1, z2):
         z2New = (z2 - c)*np.conj(z1 - c)/(r*r)
         X2, Y2 = z2New.real, z2New.imag
-        arcMidpointX, arcMidpointY = np.sqrt(0.5*(1.0 + X2)), np.sqrt(0.5*(1.0 - X2))
-        arcMidpointY = arcMidpointY if (Y2 > 0) else -arcMidpointY
-        arcMidpoint = arcMidpointX + arcMidpointY*1j
-        lineMidpoint = 0.5*(1.0 + z2New)
-        scale = max(self.scaleX, self.scaleY)
-        pxDeltaSq = np.rint(qnorm(arcMidpoint - lineMidpoint)*r*r*scale*scale)
-        pxTolSq = 0
-        return pxDeltaSq <= pxTolSq
+        mX, mY = 0.5*(1.0 + X2), 0.5*(1.0 - X2)
+        if np.isnan(mX) or np.isnan(mY) or mX<=0 or mY<=0:
+            return True
+        else:
+            arcMidX, arcMidY = np.sqrt(mX), np.sqrt(mY)
+            arcMidY = arcMidY if (Y2 > 0) else -arcMidY
+            arcMid = arcMidX + arcMidY*1j
+            lineMid = 0.5*(1.0 + z2New)
+            scale = max(self.scaleX, self.scaleY)
+            pxDeltaSq = np.rint(qnorm(arcMid - lineMid)*r*r*scale*scale)
+            pxTolSq = 0
+            return pxDeltaSq <= pxTolSq
 
     def circleIntersectsCanvasBoundary(self, c, r):
         intersections = []

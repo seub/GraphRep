@@ -16,10 +16,13 @@ class H2Segment:
         if (z2*np.conj(z1)).imag != 0.0:
             straight = False
             c = (z2*(1.0+qnorm(z1)) - z1*(1.0+qnorm(z2)))/(2.0*1j*(np.conj(z1)*z2).imag)
-            r = np.sqrt(qnorm(c) - 1)
+            r2 = qnorm(c) - 1
+            if np.isnan(r2) or r2<=0 :
+                straight, c, r = True, -1, -1
+            else:
+                r = np.sqrt(r2)
         else:
-            straight = True
-            c, r = -1, -1
+            straight, c, r = True, -1, -1
 
         return straight, c, r, z1, z2
 
